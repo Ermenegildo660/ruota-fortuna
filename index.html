@@ -3,64 +3,276 @@
 <head>
 <meta charset="UTF-8">
 <title>Ruota della fortuna</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 body{
 font-family: Arial;
 text-align:center;
-background:#f2f2f2;
+background:#1e1e1e;
+color:white;
+margin:0;
+padding:20px;
+}
+
+#wrapper{
+max-width:520px;
+margin:auto;
+}
+
+canvas{
+margin-top:20px;
 }
 
 button{
-padding:15px 30px;
-font-size:20px;
+padding:14px 26px;
+font-size:18px;
 margin-top:20px;
 cursor:pointer;
+border:none;
+border-radius:10px;
+background:#ffcc00;
 }
 
 #result{
-font-size:28px;
-margin-top:30px;
-font-weight:bold;
+font-size:26px;
+margin-top:20px;
+}
+
+#history{
+margin-top:25px;
+text-align:left;
+}
+
+#stats{
+margin-top:25px;
+text-align:left;
+}
+
+li{
+margin:4px 0;
 }
 </style>
 </head>
 
 <body>
 
+<div id="wrapper">
+
 <h2>🎡 Ruota della fortuna</h2>
 
-<button onclick="spin()">GIRA LA RUOTA</button>
+<canvas id="wheel" width="420" height="420"></canvas>
+
+<br>
+
+<button onclick="spin()">GIRA</button>
 
 <div id="result"></div>
 
+<div id="history">
+<h3>📜 Cronologia</h3>
+<ul id="historyList"></ul>
+</div>
+
+<div id="stats">
+<h3>📊 Statistiche</h3>
+<ul id="statsList"></ul>
+</div>
+
+</div>
+
 <script>
 
-let nomi = [
-"Alessia",
-"Alice",
-"Faty",
-"Gaia",
-"Gaietta",
-"Hailee",
-"Jennifer",
-"Lety",
-"Madelyn",
-"Mariasole",
-"Muzzina",
-"Rebecca",
-"Sara",
-"A scelta"
+// ----------- NOMI DELLA RUOTA -----------
+
+let names = [
+"Alessia","Alice","Faty","Gaia","Gaietta",
+"Hailee","Jennifer","Lety","Madelyn",
+"Mariasole","Muzzina","Rebecca","Sara","A scelta"
 ];
+
+// ----------- ACCESSO SOLO TUO -----------
+
+const ALLOWED_USER_ID = 361555418; 
+// ⚠️ qui poi metterai il tuo telegram id
+
+const tg = window.Telegram.WebApp;
+
+if(tg.initDataUnsafe.user){
+
+let userId = tg.initDataUnsafe.user.id;
+
+if(userId !== ALLOWED_USER_ID){
+
+document.body.innerHTML =
+"<h2>⛔ Accesso non autorizzato</h2>";
+
+}
+
+}
+
+// ----------- CANVAS RUOTA -----------
+
+let canvas = document.getElementById("wheel");
+let ctx = canvas.getContext("2d");
+
+let angle = 0;
+let spinning = false;
+
+function drawWheel(){
+
+let arc = Math.PI * 2 / names.length;
+
+ctx.clearRect(0,0,420,420);
+
+for(let i=0;i<names.length;i++){
+
+let start = angle + i * arc;
+
+ctx.beginPath();
+
+ctx.fillStyle = i % 2 ? "#ff4d4d" : "#ffcc00";
+
+ctx.moveTo(210,210);
+ctx.arc(210,210,200,start,start+arc);
+ctx.fill();
+
+ctx.save();
+
+ctx.translate(210,210);
+ctx.rotate(start + arc/2);
+
+ctx.fillStyle = "black";
+ctx.font = "14px Arial";
+
+ctx.fillText(names[i],110,5);
+
+ctx.restore();
+
+}
+
+// puntatore
+
+ctx.beginPath();
+ctx.fillStyle="white";
+ctx.moveTo(210,5);
+ctx.lineTo(230,40);
+ctx.lineTo(190,40);
+ctx.fill();
+
+}
+
+drawWheel();
+
+// ----------- CRONOLOGIA E STATS -----------
+
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+let stats = JSON.parse(localStorage.getItem("stats")) || {};
+
+names.forEach(n=>{
+if(!stats[n]) stats[n]=0;
+});
+
+function updateHistory(){
+
+let list = document.getElementById("historyList");
+list.innerHTML="";
+
+history.slice().reverse().forEach(h=>{
+let li=document.createElement("li");
+li.textContent=h;
+list.appendChild(li);
+});
+
+}
+
+function updateStats(){
+
+let list=document.getElementById("statsList");
+list.innerHTML="";
+
+for(let name in stats){
+
+let li=document.createElement("li");
+
+li.textContent = name+" → "+stats[name];
+
+list.appendChild(li);
+
+}
+
+}
+
+updateHistory();
+updateStats();
+
+// ----------- ANIMAZIONE RUOTA -----------
 
 function spin(){
 
-let random = Math.floor(Math.random()*nomi.length);
+if(spinning) return;
 
-let vincitore = nomi[random];
+spinning = true;
+
+let spinAngle = Math.random()*2000 + 2000;
+
+let duration = 4000;
+
+let start = null;
+
+function animate(timestamp){
+
+if(!start) start = timestamp;
+
+let progress = timestamp - start;
+
+angle += spinAngle * Math.exp(-progress/1500) * 0.0005;
+
+drawWheel();
+
+if(progress < duration){
+
+requestAnimationFrame(animate);
+
+}else{
+
+finishSpin();
+
+spinning = false;
+
+}
+
+}
+
+requestAnimationFrame(animate);
+
+}
+
+// ----------- RISULTATO -----------
+
+function finishSpin(){
+
+let arc = Math.PI*2 / names.length;
+
+let index = Math.floor(
+(names.length - (angle % (Math.PI*2)) / arc) % names.length
+);
+
+let result = names[index];
 
 document.getElementById("result").innerHTML =
-"🎉 È uscita: " + vincitore;
+"🎉 È uscita: "+result;
+
+history.push(result);
+
+stats[result]++;
+
+localStorage.setItem("history",JSON.stringify(history));
+localStorage.setItem("stats",JSON.stringify(stats));
+
+updateHistory();
+updateStats();
 
 }
 
