@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ruota della fortuna</title>
+
+<style>
+body{
+font-family: Arial;
+text-align:center;
+background:#f2f2f2;
+}
+
+button{
+padding:15px 30px;
+font-size:20px;
+margin-top:20px;
+cursor:pointer;
+}
+
+#result{
+font-size:28px;
+margin-top:30px;
+font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎡 Ruota della fortuna</h2>
+
+<button onclick="spin()">GIRA LA RUOTA</button>
+
+<div id="result"></div>
+
+<script>
+
+let nomi = [
+"Alessia",
+"Alice",
+"Faty",
+"Gaia",
+"Gaietta",
+"Hailee",
+"Jennifer",
+"Lety",
+"Madelyn",
+"Mariasole",
+"Muzzina",
+"Rebecca",
+"Sara",
+"A scelta"
+];
+
+function spin(){
+
+let random = Math.floor(Math.random()*nomi.length);
+
+let vincitore = nomi[random];
+
+document.getElementById("result").innerHTML =
+"🎉 È uscita: " + vincitore;
+
+}
+
+</script>
+
+</body>
+</html>
